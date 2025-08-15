@@ -20,10 +20,12 @@ provider "aws" {
 # versions.tf o main.tf
 terraform {
   backend "s3" {
-    bucket         = "fleteahora-tfstate"
-    key            = "envs/prod/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "fleteahora-tf-lock"
-    encrypt        = true
+    bucket       = "fleteahora-tfstate"
+    key          = "envs/prod/terraform.tfstate"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
   }
 }
+
+
