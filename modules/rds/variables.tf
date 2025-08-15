@@ -34,3 +34,9 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "enabled" {
+  description = "Si false, no se crea RDS"
+  type        = bool
+  default     = false
+}

@@ -15,13 +15,14 @@ module "network" {
 }
 
 module "rds" {
+
   source            = "./modules/rds"
-  create_rds        = var.create_rds
+  enabled           = var.use_rds
   vpc_id            = module.network.vpc_id
   private_subnets   = module.network.private_subnet_ids
   db_name           = var.db_name
-  db_username       = var.db_username
-  db_password       = var.db_password
+  db_username       = var.db_user
+  db_password       = var.db_pass
   db_instance_class = var.db_instance_class
   tags              = local.tags
 }
@@ -37,9 +38,17 @@ module "backend" {
   jwt_secret       = var.jwt_secret
   cors_origin      = var.cors_origin
 
-  db_host = module.rds.endpoint_host
-  db_user = var.db_username
-  db_pass = var.db_password
+  db_user           = var.db_user
+  db_pass           = var.db_pass
+
+    # Selección de modo de BD (lo usas dentro del user_data para construir DATABASE_URL)
+  db_mode = var.use_rds ? "rds" : "compose"
+  db_host = module.rds.endpoint != null ? module.rds.endpoint : ""
+
+
+  enable_pgadmin = var.use_rds ? false : var.enable_pgadmin
+  enable_mailhog = var.enable_mailhog
+
   db_name = var.db_name
 
   rds_sg_id = module.rds.sg_id
