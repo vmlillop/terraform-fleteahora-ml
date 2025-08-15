@@ -1,0 +1,30 @@
+# --- Terraform ---
+**/.terraform/*
+.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Node (por si hay scripts/seed en el repo) ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- Env / secretos ---
+.env
+.env.*

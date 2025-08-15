@@ -1,0 +1,114 @@
+#!/bin/bash
+set -euo pipefail
+
+# --- Expandir filesystem por si el volumen crece ---
+sudo growpart /dev/xvda 1 || true
+fs=$(findmnt -n -o FSTYPE /)
+if [ "$fs" = "xfs" ]; then
+  sudo xfs_growfs /
+else
+  sudo resize2fs /dev/xvda1 || true
+fi
+
+# --- Variables inyectadas por templatefile() ---
+REPO_URL="${repo_url}"
+DB_HOST="${db_host}"
+DB_USER="${db_user}"
+DB_PASS="${db_pass}"
+DB_NAME="${db_name}"
+APP_PORT="${app_port}"
+JWT_SECRET="${jwt_secret}"
+CORS_ORIGIN="${cors_origin}"
+
+# --- Node 20 + paquetes base ---
+curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+sudo dnf -y install nodejs git nginx postgresql15 jq
+
+# --- Código de la app ---
+sudo -u ec2-user bash -lc "git clone $REPO_URL /home/ec2-user/app || (cd /home/ec2-user/app && git pull --rebase || true)"
+sudo chown -R ec2-user:ec2-user /home/ec2-user/app
+
+# --- .env con SSL requerido + variables de app ---
+cat >/home/ec2-user/app/.env <<EOF
+DATABASE_URL=postgresql://$DB_USER:$DB_PASS@$DB_HOST:5432/$DB_NAME?sslmode=require
+PORT=$APP_PORT
+NODE_ENV=production
+JWT_SECRET=$JWT_SECRET
+CORS_ORIGIN=$CORS_ORIGIN
+EOF
+chown ec2-user:ec2-user /home/ec2-user/app/.env
+chmod 600 /home/ec2-user/app/.env
+
+# --- Crear DB si no existe (idempotente) ---
+export PGPASSWORD="$DB_PASS"
+EXISTS=$(psql "host=$DB_HOST port=5432 user=$DB_USER dbname=postgres sslmode=require" -Atc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" || true)
+if [ "$EXISTS" != "1" ]; then
+  psql "host=$DB_HOST port=5432 user=$DB_USER dbname=postgres sslmode=require" -c "CREATE DATABASE $DB_NAME;"
+fi
+
+# --- Instalar deps y migraciones ---
+sudo -u ec2-user bash -lc "
+  cd /home/ec2-user/app \
+  && ( [ -f package-lock.json ] && npm ci || npm install ) \
+  && npx prisma generate \
+  && npx prisma migrate deploy \
+  && ( jq -r '.scripts.build' package.json >/dev/null 2>&1 && npm run build || true )
+"
+
+# --- Systemd unit para la app ---
+cat >/usr/local/bin/fleteahora-start.sh <<'SH'
+#!/usr/bin/env bash
+set -e
+cd /home/ec2-user/app
+export $(grep -v '^#' .env | xargs)
+ENTRY="src/index.js"
+if [ -f "dist/index.js" ]; then ENTRY="dist/index.js"; fi
+exec /usr/bin/node "$ENTRY"
+SH
+chmod +x /usr/local/bin/fleteahora-start.sh
+
+cat >/etc/systemd/system/fleteahora.service <<'UNIT'
+[Unit]
+Description=FleteAhora Node API
+After=network.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/app
+EnvironmentFile=/home/ec2-user/app/.env
+ExecStart=/usr/local/bin/fleteahora-start.sh
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable fleteahora
+systemctl restart fleteahora
+
+# --- Nginx reverse proxy :80 -> :$APP_PORT ---
+cat >/etc/nginx/conf.d/fleteahora.conf <<'NGINX'
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass         http://127.0.0.1:__APP_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection "upgrade";
+    }
+}
+NGINX
+
+# Sustituir puerto en conf (porque el heredoc está quoted)
+sudo sed -i "s/__APP_PORT__/$APP_PORT/g" /etc/nginx/conf.d/fleteahora.conf
+
+nginx -t && systemctl enable nginx && systemctl restart nginx
