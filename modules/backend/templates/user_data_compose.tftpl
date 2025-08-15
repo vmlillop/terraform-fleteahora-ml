@@ -208,5 +208,33 @@ bring_up_stack() {
   [ -f "$BASE_DIR/docker-compose.yml" ] || { log "No existe $BASE_DIR/docker-compose.yml"; return 1; }
   log "Levantando stack..."
   (cd "$BASE_DIR" && docker compose up -d)
-  (cd "$BAS
+  (cd "$BASE_DIR" && docker compose ps || true)
+}
+
+ensure_docker
+bring_up_stack || true
+SH
+chmod +x /usr/local/bin/fleteahora-bootstrap.sh
+
+cat >/etc/systemd/system/fleteahora-bootstrap.service <<'UNIT'
+[Unit]
+Description=FleteAhora Bootstrap (instala Docker/Compose y levanta el stack)
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fleteahora-bootstrap.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now fleteahora-bootstrap
+
 
