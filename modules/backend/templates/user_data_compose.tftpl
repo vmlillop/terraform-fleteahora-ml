@@ -32,7 +32,7 @@ NGX_DIR="$BASE_DIR/nginx"
 sudo mkdir -p "$APP_DIR" "$NGX_DIR"
 sudo chown -R ec2-user:ec2-user "$BASE_DIR"
 
-# ===== Docker CE + Compose (Amazon Linux 2023) =====
+# ===== Docker CE + Compose (Amazon Linux 2023, robusto) =====
 if ! command -v docker >/dev/null 2>&1; then
   sudo dnf -y install dnf-plugins-core git jq
   sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -72,25 +72,13 @@ EOF
 sudo chmod 600 "$APP_DIR/.env"
 sudo chown ec2-user:ec2-user "$APP_DIR/.env"
 
-# ===== Fallback por si no compila ni existe src/index.js =====
-cat >"$APP_DIR/bootstrap-index.js" <<'JS'
-import http from 'http';
-const PORT = process.env.PORT || 8080;
-const server = http.createServer((req, res) => {
-  if (req.url === '/healthz') { res.writeHead(200, {'Content-Type':'text/plain'}); return res.end('ok'); }
-  if (req.url === '/') { res.writeHead(200, {'Content-Type':'text/plain'}); return res.end('fallback ok'); }
-  res.writeHead(404); res.end('not found');
-});
-server.listen(PORT, () => console.log('fallback listening on', PORT));
-JS
-sudo chown ec2-user:ec2-user "$APP_DIR/bootstrap-index.js"
-
 # ===== Nginx reverse proxy (simple + /healthz) =====
 cat >"$NGX_DIR/default.conf" <<'NGINX'
 server {
   listen 80 default_server;
   server_name _;
 
+  # Health check servido por Nginx (no toca la app)
   location = /healthz {
     add_header Content-Type text/plain;
     return 200 'ok';
@@ -143,7 +131,7 @@ services:
       if [ -f package-lock.json ]; then npm ci; else npm install; fi &&
       npx prisma generate &&
       npx prisma migrate deploy || true &&
-      (npm run build && node dist/index.js) || node src/index.js || node bootstrap-index.js
+      node src/index.js
       "
     restart: unless-stopped
 
@@ -215,7 +203,7 @@ services:
       if [ -f package-lock.json ]; then npm ci; else npm install; fi &&
       npx prisma generate &&
       npx prisma migrate deploy || true &&
-      (npm run build && node dist/index.js) || node src/index.js || node bootstrap-index.js
+      node src/index.js
       "
     restart: unless-stopped
 
@@ -268,7 +256,7 @@ fi
 sudo docker compose pull || true
 sudo docker compose up -d --remove-orphans
 sudo docker compose ps || true
-sleep 3
+sleep 2
 curl -sS -i http://127.0.0.1/healthz || true
 
 # ===== Bootstrap idempotente en cada boot (systemd) =====
