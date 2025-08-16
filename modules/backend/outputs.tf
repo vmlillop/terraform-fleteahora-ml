@@ -31,3 +31,14 @@ output "sg_id" {
   description = "Security Group de la instancia backend"
   value       = aws_security_group.backend.id
 }
+
+
+output "effective_db_mode" {
+  value       = var.db_mode
+  description = "compose o rds"
+}
+
+output "effective_db_host" {
+  value       = var.db_mode == "rds" ? var.db_host : "db:5432"
+  description = "Host al que apunta DATABASE_URL"
+}

@@ -38,10 +38,10 @@ module "backend" {
   jwt_secret       = var.jwt_secret
   cors_origin      = var.cors_origin
 
-  db_user           = var.db_user
-  db_pass           = var.db_pass
+  db_user = var.db_user
+  db_pass = var.db_pass
 
-    # Selección de modo de BD (lo usas dentro del user_data para construir DATABASE_URL)
+  # Selección de modo de BD (lo usas dentro del user_data para construir DATABASE_URL)
   db_mode = var.use_rds ? "rds" : "compose"
   db_host = module.rds.endpoint != null ? module.rds.endpoint : ""
 

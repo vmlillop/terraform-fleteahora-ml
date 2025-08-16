@@ -9,3 +9,14 @@ output "ssh_command" {
 output "db_endpoint" {
   value = module.rds.endpoint
 }
+
+
+output "db_mode" {
+  value       = module.backend.effective_db_mode
+  description = "compose o rds"
+}
+
+output "db_host" {
+  value       = module.backend.effective_db_host
+  description = "Host destino de la BD"
+}

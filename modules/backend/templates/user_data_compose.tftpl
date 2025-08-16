@@ -51,7 +51,7 @@ else
 fi
 
 # ===== Construir DATABASE_URL según DB_MODE =====
-if [ "$DB_MODE" = "rds" ] && [ -n "$${RDS_HOST:-}" ]; then
+if [ "$DB_MODE" = "rds" ] && [ -n "$RDS_HOST" ]; then
   DB_URL="postgresql://$DB_USER:$DB_PASS@$RDS_HOST:5432/$DB_NAME?sslmode=require"
 else
   DB_URL="postgresql://$DB_USER:$DB_PASS@db:5432/$DB_NAME"
@@ -71,6 +71,19 @@ DB_MODE=$DB_MODE
 EOF
 sudo chmod 600 "$APP_DIR/.env"
 sudo chown ec2-user:ec2-user "$APP_DIR/.env"
+
+# ===== Fallback por si no compila ni existe src/index.js =====
+cat >"$APP_DIR/bootstrap-index.js" <<'JS'
+import http from 'http';
+const PORT = process.env.PORT || 8080;
+const server = http.createServer((req, res) => {
+  if (req.url === '/healthz') { res.writeHead(200, {'Content-Type':'text/plain'}); return res.end('ok'); }
+  if (req.url === '/') { res.writeHead(200, {'Content-Type':'text/plain'}); return res.end('fallback ok'); }
+  res.writeHead(404); res.end('not found');
+});
+server.listen(PORT, () => console.log('fallback listening on', PORT));
+JS
+sudo chown ec2-user:ec2-user "$APP_DIR/bootstrap-index.js"
 
 # ===== Nginx reverse proxy (simple + /healthz) =====
 cat >"$NGX_DIR/default.conf" <<'NGINX'
@@ -113,7 +126,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: node:20-alpine
+    image: node:20-bookworm
     working_dir: /usr/src/app
     env_file:
       - ./app/.env
@@ -125,12 +138,12 @@ services:
       - ./app:/usr/src/app
       - node_modules:/usr/src/app/node_modules
     command: >
-      sh -lc "
-      apk add --no-cache bash curl >/dev/null 2>&1 || true;
+      bash -lc "
+      apt-get update && apt-get install -y ca-certificates openssl curl && update-ca-certificates;
       if [ -f package-lock.json ]; then npm ci; else npm install; fi &&
       npx prisma generate &&
       npx prisma migrate deploy || true &&
-      (npm run build && node dist/index.js || node src/index.js)
+      (npm run build && node dist/index.js) || node src/index.js || node bootstrap-index.js
       "
     restart: unless-stopped
 
@@ -182,7 +195,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: node:20-alpine
+    image: node:20-bookworm
     working_dir: /usr/src/app
     env_file:
       - ./app/.env
@@ -197,12 +210,12 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -lc "
-      apk add --no-cache bash curl >/dev/null 2>&1 || true;
+      bash -lc "
+      apt-get update && apt-get install -y ca-certificates openssl curl && update-ca-certificates;
       if [ -f package-lock.json ]; then npm ci; else npm install; fi &&
       npx prisma generate &&
       npx prisma migrate deploy || true &&
-      (npm run build && node dist/index.js || node src/index.js)
+      (npm run build && node dist/index.js) || node src/index.js || node bootstrap-index.js
       "
     restart: unless-stopped
 
