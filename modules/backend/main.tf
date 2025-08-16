@@ -99,9 +99,9 @@ resource "aws_instance" "this" {
   user_data                   = local.user_data
   user_data_replace_on_change = true
 
-  # ⬇⬇⬇ AUMENTA el disco raíz a 20 GiB (puedes poner 30 si quieres más holgura)
+  # ⬇⬇⬇ AUMENTA el disco raíz a 30 GiB (puedes poner 30 si quieres más holgura)
   root_block_device {
-    volume_size           = 20
+    volume_size           = 30
     volume_type           = "gp3"
     delete_on_termination = true
   }
