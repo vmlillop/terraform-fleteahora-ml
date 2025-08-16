@@ -108,3 +108,10 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+
+variable "repo_ref" {
+  description = "Rama, tag o commit del backend a desplegar (ej: main, v1.2.3, 0a1b2c3)"
+  type        = string
+  default     = "main"
+}

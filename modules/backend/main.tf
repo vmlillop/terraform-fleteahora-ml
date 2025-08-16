@@ -54,6 +54,21 @@ data "http" "my_ip" {
 }
 
 locals {
+  user_data = templatefile("${path.module}/templates/user_data_compose.tftpl", {
+    repo_url       = var.repo_url
+    app_port       = var.app_port
+    db_name        = var.db_name
+    db_user        = var.db_user
+    db_pass        = var.db_pass
+    jwt_secret     = var.jwt_secret
+    cors_origin    = var.cors_origin
+    enable_pgadmin = tostring(var.enable_pgadmin)
+    enable_mailhog = tostring(var.enable_mailhog)
+    db_mode        = var.db_mode
+    db_host        = var.db_host
+    repo_ref       = var.repo_ref # <-- NUEVO
+  })
+
   my_ip_cidr = "${chomp(data.http.my_ip.response_body)}/32"
 }
 

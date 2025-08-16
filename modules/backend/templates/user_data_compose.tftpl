@@ -11,6 +11,7 @@ else
 fi
 
 # ===== Variables inyectadas por templatefile() =====
+REPO_REF="${repo_ref}"
 REPO_URL="${repo_url}"
 APP_PORT="${app_port}"
 DB_NAME="${db_name}"
@@ -43,11 +44,36 @@ if ! command -v docker >/dev/null 2>&1; then
   sudo systemctl enable --now docker
 fi
 
-# ===== Clonar o actualizar repo =====
+# ===== Clonar o actualizar repo (con rama/tag/commit en REPO_REF) =====
+# Asegúrate de tener arriba en la sección de variables:
+# REPO_REF="${repo_ref}"; [ -z "$REPO_REF" ] && REPO_REF="main"
+
 if [ ! -d "$APP_DIR/.git" ]; then
-  sudo -u ec2-user git clone "$REPO_URL" "$APP_DIR"
+  sudo -u ec2-user bash -lc "
+    set -e
+    git clone --no-single-branch '$REPO_URL' '$APP_DIR'
+    cd '$APP_DIR'
+    git fetch --all --tags
+    # intenta checkout directo (commit/tag/rama), si no, crea rama local desde origin
+    git checkout -f '$REPO_REF' 2>/dev/null || git checkout -B '$REPO_REF' 'origin/$REPO_REF' 2>/dev/null || true
+    # si existe rama remota, alinear duro con origin
+    if git rev-parse --verify --quiet 'origin/$REPO_REF' >/dev/null; then
+      git reset --hard 'origin/$REPO_REF'
+    fi
+  "
 else
-  sudo -u ec2-user bash -lc "cd '$APP_DIR' && git fetch --all && git reset --hard origin/main || true"
+  sudo -u ec2-user bash -lc "
+    set -e
+    cd '$APP_DIR'
+    git fetch --all --tags
+    git checkout -f '$REPO_REF' 2>/dev/null || git checkout -B '$REPO_REF' 'origin/$REPO_REF' 2>/dev/null || true
+    if git rev-parse --verify --quiet 'origin/$REPO_REF' >/dev/null; then
+      git reset --hard 'origin/$REPO_REF'
+    else
+      # si REPO_REF es un tag/commit, resetea contra él
+      git reset --hard '$REPO_REF' || true
+    fi
+  "
 fi
 
 # ===== Construir DATABASE_URL según DB_MODE =====

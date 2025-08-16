@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # ===== Variables inyectadas por templatefile() =====
+REPO_REF="${repo_ref}"; [ -z "$REPO_REF" ] && REPO_REF="main"
 REPO_URL="${repo_url}"
 APP_PORT="${app_port}"                 # ej: 8080
 DB_NAME="${db_name}"                   # ej: fleteahora

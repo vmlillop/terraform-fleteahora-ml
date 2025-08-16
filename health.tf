@@ -15,7 +15,7 @@ data "external" "compose_health" {
 output "compose_health" {
   value = {
     url       = data.external.compose_health.result["url"]
-    status    = data.external.compose_health.result["status"]   # "up" | "degraded" | "down"
+    status    = data.external.compose_health.result["status"] # "up" | "degraded" | "down"
     http_code = data.external.compose_health.result["code"]
     body      = data.external.compose_health.result["body"]
   }
