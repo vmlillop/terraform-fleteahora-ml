@@ -118,9 +118,9 @@ services:
     env_file:
       - ./app/.env
     environment:
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_NAME: $${DB_NAME}
+      DB_USER: $${DB_USER}
+      DB_PASS: $${DB_PASS}
     volumes:
       - ./app:/usr/src/app
       - node_modules:/usr/src/app/node_modules
@@ -163,13 +163,13 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: $${DB_NAME}
+      POSTGRES_USER: $${DB_USER}
+      POSTGRES_PASSWORD: $${DB_PASS}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME} -h 127.0.0.1"]
+      test: ["CMD-SHELL", "pg_isready -U $${DB_USER} -d $${DB_NAME} -h 127.0.0.1"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -187,9 +187,9 @@ services:
     env_file:
       - ./app/.env
     environment:
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_NAME: $${DB_NAME}
+      DB_USER: $${DB_USER}
+      DB_PASS: $${DB_PASS}
     volumes:
       - ./app:/usr/src/app
       - node_modules:/usr/src/app/node_modules
