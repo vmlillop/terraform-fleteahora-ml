@@ -54,8 +54,11 @@ data "http" "my_ip" {
 }
 
 locals {
+  my_ip_cidr = "${chomp(data.http.my_ip.response_body)}/32"
+
   user_data = templatefile("${path.module}/templates/user_data_compose.tftpl", {
     repo_url       = var.repo_url
+    repo_ref       = var.repo_ref     # <-- nuevo
     app_port       = var.app_port
     db_name        = var.db_name
     db_user        = var.db_user
@@ -66,10 +69,7 @@ locals {
     enable_mailhog = tostring(var.enable_mailhog)
     db_mode        = var.db_mode
     db_host        = var.db_host
-    repo_ref       = var.repo_ref # <-- NUEVO
   })
-
-  my_ip_cidr = "${chomp(data.http.my_ip.response_body)}/32"
 }
 
 # SSH solo desde tu IP actual
@@ -80,26 +80,6 @@ resource "aws_vpc_security_group_ingress_rule" "ssh" {
   from_port         = 22
   to_port           = 22
   description       = "SSH from ${local.my_ip_cidr}"
-}
-
-# ---- user_data renderizado con templatefile() ----
-# Pasa TODO lo que necesita el script (incluye flags en string: "true"/"false")
-locals {
-  user_data = templatefile("${path.module}/templates/user_data_compose.tftpl", {
-    repo_url       = var.repo_url
-    app_port       = var.app_port
-    db_name        = var.db_name
-    db_user        = var.db_user
-    db_pass        = var.db_pass
-    jwt_secret     = var.jwt_secret
-    cors_origin    = var.cors_origin
-    enable_pgadmin = tostring(var.enable_pgadmin)
-    enable_mailhog = tostring(var.enable_mailhog)
-
-    # Modo BD (compose | rds) y host RDS (si aplica)
-    db_mode = var.db_mode
-    db_host = var.db_host
-  })
 }
 
 # Instancia EC2 que aloja Nginx + App (y Compose en modo "compose")
