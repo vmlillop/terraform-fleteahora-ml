@@ -39,13 +39,13 @@ resource "aws_vpc_security_group_egress_rule" "all_out" {
 # Si usas RDS, crea (opcionalmente) una regla en el SG de RDS para permitir
 # conexiones desde el SG del backend (solo cuando db_mode = "rds" y rds_sg_id no es null)
 resource "aws_vpc_security_group_ingress_rule" "rds_from_backend" {
-  count                      = var.db_mode == "rds" && var.rds_sg_id != null ? 1 : 0
-  security_group_id          = var.rds_sg_id
+  count                        = var.db_mode == "rds" && var.rds_sg_id != null ? 1 : 0
+  security_group_id            = var.rds_sg_id
   referenced_security_group_id = aws_security_group.backend.id
-  ip_protocol                = "tcp"
-  from_port                  = 5432
-  to_port                    = 5432
-  description                = "Allow Postgres from backend SG"
+  ip_protocol                  = "tcp"
+  from_port                    = 5432
+  to_port                      = 5432
+  description                  = "Allow Postgres from backend SG"
 }
 
 # Detecta tu IP pública (para restringir SSH)
@@ -82,8 +82,8 @@ locals {
     enable_mailhog = tostring(var.enable_mailhog)
 
     # Modo BD (compose | rds) y host RDS (si aplica)
-    db_mode        = var.db_mode
-    db_host        = var.db_host
+    db_mode = var.db_mode
+    db_host = var.db_host
   })
 }
 
@@ -95,8 +95,16 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = [aws_security_group.backend.id]
   key_name               = var.key_name
 
+  # user_data desde tu template (local.user_data ya debería renderizarlo)
   user_data                   = local.user_data
   user_data_replace_on_change = true
+
+  # ⬇⬇⬇ AUMENTA el disco raíz a 20 GiB (puedes poner 30 si quieres más holgura)
+  root_block_device {
+    volume_size           = 20
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
 
   tags = merge(var.tags, { Name = "fleteahora-backend" })
 }

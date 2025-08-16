@@ -1,6 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
+# ===== Expandir raíz si el volumen fue agrandado =====
+sudo growpart /dev/xvda 1 || true
+fs=$(findmnt -n -o FSTYPE / || echo xfs)
+if [ "$fs" = "xfs" ]; then
+  sudo xfs_growfs / || true
+else
+  sudo resize2fs /dev/xvda1 || true
+fi
+
+
 # ===== Variables inyectadas por templatefile() =====
 REPO_URL="${repo_url}"
 APP_PORT="${app_port}"                 # ej: 8080
