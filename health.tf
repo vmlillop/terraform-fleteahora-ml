@@ -7,7 +7,7 @@ data "external" "compose_health" {
   # Consultamos al Nginx de la instancia
   query = {
     url     = "http://${module.backend.public_ip}/healthz"
-    timeout = "6"
+    timeout = "10"
   }
 }
 

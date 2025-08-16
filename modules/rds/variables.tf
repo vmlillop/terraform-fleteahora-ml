@@ -40,3 +40,9 @@ variable "enabled" {
   type        = bool
   default     = false
 }
+
+variable "repo_ref" {
+  description = "Ref del repo (commit/branch/tag)"
+  type        = string
+  default     = "main"
+}

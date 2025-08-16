@@ -111,3 +111,9 @@ variable "enable_mailhog" {
   type        = bool
   default     = true
 }
+
+variable "repo_ref" {
+  description = "Commit/branch/tag del repo backend a desplegar"
+  type        = string
+  default     = "main"
+}

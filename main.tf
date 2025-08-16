@@ -37,6 +37,7 @@ module "backend" {
   app_port         = var.app_port
   jwt_secret       = var.jwt_secret
   cors_origin      = var.cors_origin
+  repo_ref         = var.repo_ref
 
   db_user = var.db_user
   db_pass = var.db_pass
