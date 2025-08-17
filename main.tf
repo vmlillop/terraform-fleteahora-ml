@@ -44,7 +44,7 @@ module "backend" {
 
   # Selección de modo de BD (lo usas dentro del user_data para construir DATABASE_URL)
   db_mode = var.use_rds ? "rds" : "compose"
-  db_host = module.rds.endpoint != null ? module.rds.endpoint : ""
+  # db_host = module.rds.endpoint != null ? module.rds.endpoint : ""
 
 
   enable_pgadmin = var.use_rds ? false : var.enable_pgadmin
@@ -52,7 +52,7 @@ module "backend" {
 
   db_name = var.db_name
 
-  rds_sg_id = module.rds.sg_id
+  #   rds_sg_id = module.rds.sg_id
 
   tags = local.tags
 }
