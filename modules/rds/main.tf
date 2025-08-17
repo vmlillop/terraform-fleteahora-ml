@@ -39,8 +39,3 @@ resource "aws_db_instance" "this" {
   apply_immediately       = true
   tags                    = merge(var.tags, { Name = "fleteahora-db" })
 }
-
-locals {
-  endpoint      = var.create_rds ? aws_db_instance.this[0].endpoint : null
-  endpoint_host = var.create_rds ? split(":", aws_db_instance.this[0].endpoint)[0] : null
-}

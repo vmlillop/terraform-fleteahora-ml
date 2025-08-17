@@ -70,6 +70,7 @@ locals {
     db_mode        = var.db_mode
     db_host        = var.db_host
   })
+
 }
 
 # SSH solo desde tu IP actual
