@@ -15,7 +15,7 @@ module "network" {
 }
 
 module "rds" {
-
+  count             = var.db_mode == "rds" ? 1 : 0
   source            = "./modules/rds"
   enabled           = var.use_rds
   vpc_id            = module.network.vpc_id

@@ -46,3 +46,13 @@ variable "repo_ref" {
   type        = string
   default     = "main"
 }
+
+variable "db_mode" {
+  type        = string
+  description = "compose | rds"
+  default     = "compose"
+  validation {
+    condition     = contains(["compose","rds"], var.db_mode)
+    error_message = "db_mode debe ser 'compose' o 'rds'."
+  }
+}
